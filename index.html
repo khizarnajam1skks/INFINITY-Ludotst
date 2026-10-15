@@ -280,15 +280,22 @@ g('tL').onclick=()=>mode(0);g('tR').onclick=()=>mode(1);g('go').onclick=go;
 g('ph').oninput=e=>e.target.value=e.target.value.replace(/\D/g,'');
 ['ph','pw','nm'].forEach(i=>g(i).onkeydown=e=>{if(e.key=='Enter')go()});
 g('ey').onclick=()=>{const p=g('pw');p.type=p.type=='password'?'text':'password'};
-const GOOGLE_CLIENT_ID='';/* <-- yahan apna Google OAuth Client ID paste karo */
-g('gg').onclick=()=>{
- if(!GOOGLE_CLIENT_ID)return msg('Google Client ID set nahi hai (index.html me GOOGLE_CLIENT_ID)');
- const run=()=>{try{google.accounts.oauth2.initTokenClient({client_id:GOOGLE_CLIENT_ID,scope:'openid email profile',callback:async t=>{if(!t||!t.access_token)return msg('Google login cancel/fail');try{const u=await(await fetch('https://www.googleapis.com/oauth2/v3/userinfo',{headers:{Authorization:'Bearer '+t.access_token}})).json();if(!u.email)throw 0;ok(u.name||u.email.split('@')[0],'g_'+u.email)}catch(e){msg('Google profile nahi mila')}}}).requestAccessToken({prompt:'select_account'})}catch(e){msg('Google load nahi hua')}};
- if(window.google&&google.accounts)return run();
- msg('Google khul raha hai...',1);const sc=document.createElement('script');sc.src='https://accounts.google.com/gsi/client';sc.onload=run;sc.onerror=()=>msg('Internet/Google blocked');document.head.appendChild(sc)};
+/* Google login via Netlify Identity (no Client ID needed): redirect -> Google -> back here */
+const NID=()=>import('https://esm.sh/@netlify/identity@2');
+const gName=u=>(u&&(u.name||(u.metadata&&(u.metadata.full_name||u.metadata.name))||(u.email||'').split('@')[0]))||'Player';
+g('gg').onclick=async()=>{if(busy)return;busy=1;msg('Google khul raha hai...',1);
+ try{try{localStorage.setItem('il_grb',g('rb').checked?'1':'0')}catch(e){}(await NID()).oauthLogin('google')}
+ catch(e){location.href='/.netlify/identity/authorize?provider=google'}};
+if(/(access_token|error)=/.test(location.hash)){window.ILgcb=1;
+ const done=new Promise(r=>document.addEventListener('loadingcomplete',()=>setTimeout(r,700),{once:true}));
+ (async()=>{let u=null,err='';try{const r=await(await NID()).handleAuthCallback();u=r&&r.user}catch(e){err=(e&&e.message)||'Google login fail'}
+  history.replaceState(null,'',location.pathname+location.search);await done;
+  try{g('rb').checked=localStorage.getItem('il_grb')!=='0'}catch(e){}
+  if(u&&u.email){g('s').classList.add('au');ok(gName(u),'g_'+u.email.toLowerCase())}
+  else{g('s').classList.add('au');msg(/provider|not found|enabled/i.test(err)?'Google login abhi enable nahi hai (Netlify Identity > Google)':(err||'Google login cancel/fail'))}})()}
 g('fp').onclick=()=>msg('Password reset ke liye SMS OTP backend chahiye');
 try{g('ph').value=localStorage.getItem('il_ph')||''}catch(e){}
-document.addEventListener('loadingcomplete',()=>setTimeout(()=>{if(window.ILsess)return;g('s').classList.add('au');setTimeout(()=>{if(!DB)msg('Offline mode: account sirf is device pe save hoga',1)},1800)},700));
+document.addEventListener('loadingcomplete',()=>setTimeout(()=>{if(window.ILsess||window.ILgcb)return;g('s').classList.add('au');setTimeout(()=>{if(!DB)msg('Offline mode: account sirf is device pe save hoga',1)},1800)},700));
 })();
 /* ---------- HOME SCREEN (buttons are visual only for now) ---------- */
 (function(){
