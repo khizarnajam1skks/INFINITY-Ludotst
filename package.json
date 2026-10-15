@@ -1,1 +1,1 @@
-{"name":"infinity-ludo-server","version":"1.0.0","scripts":{"start":"node server.js"}}
+{"name":"infinity-ludo","version":"1.0.0","dependencies":{"@netlify/blobs":"^8.1.0"}}
